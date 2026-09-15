@@ -24,4 +24,20 @@ class Transaction:
         # Return the transaction in a simple financial statement format
         return f"{self.date} {self.description} {self.amount:.2f} {self.category}"
 
+class RecurringTransaction(Transaction):
+    # Create a recurring transaction with an additional interval
+    def __init__(self, date, description, amount, category, interval):
+        # Use the parent class constructor for the main transaction details
+        super().__init__(date, description, amount, category)
+
+        # Store the recurring interval as an instance variable
+        self.interval = interval
+
+    def __str__(self):
+        # Override the parent string method to include the recurring interval
+        return (
+            f"{self.date} | {self.description} | "
+            f"{self.amount:.2f} | {self.category} | "
+            f"Recurring: {self.interval}"
+        )
     
