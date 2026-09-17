@@ -1,0 +1,281 @@
+from models import Transaction, RecurringTransaction
+from parser import load_transactions
+from analytics import (
+    running_balance,
+    make_flagger,
+    find_duplicates,
+    find_outliers,
+    category_totals
+)
+
+
+def run_tests():
+    # Test a valid transaction
+    transaction = Transaction(
+        "2026-08-01",
+        "Groceries",
+        -450.50,
+        "FOOD"
+    )
+
+    assert transaction.date == "2026-08-01", (
+        "Valid transaction should keep the correct date"
+    )
+
+    assert transaction.amount == -450.50, (
+        "Valid transaction should convert amount to float"
+    )
+
+    assert transaction.category == "FOOD", (
+        "Valid transaction should keep the correct category"
+    )
+
+    # Test income detection
+    income = Transaction(
+        "2026-08-02",
+        "Salary",
+        15000.00,
+        "SALARY"
+    )
+
+    assert income.is_income() is True, (
+        "Positive amount should be recognised as income"
+    )
+
+    assert transaction.is_income() is False, (
+        "Negative amount should not be recognised as income"
+    )
+
+    # Test parser with the messy sample statement
+    transactions, rejections = load_transactions(
+        "data/sample_statement.txt"
+    )
+
+    # Check that the wrong date separator was normalised
+    normalised_date_found = False
+
+    for item in transactions:
+        if item.date == "2026-08-03":
+            normalised_date_found = True
+
+    assert normalised_date_found is True, (
+        "Wrong date separator should be normalised"
+    )
+
+    # Check that invalid rows were rejected
+    assert len(rejections) == 3, (
+        "Three invalid rows should be rejected"
+    )
+
+    # Test that whitespace was stripped correctly
+    whitespace_transaction_found = False
+
+    for item in transactions:
+        if (
+            item.description == "Groceries"
+            and item.amount == -450.50
+            and item.category == "FOOD"
+        ):
+            whitespace_transaction_found = True
+
+    assert whitespace_transaction_found is True, (
+        "Whitespace should be stripped from transaction fields"
+    )
+
+    # Test running balance
+    balance_transactions = [
+        Transaction(
+            "2026-08-01",
+            "Salary",
+            1000.00,
+            "SALARY"
+        ),
+        Transaction(
+            "2026-08-02",
+            "Food",
+            -200.00,
+            "FOOD"
+        ),
+        Transaction(
+            "2026-08-03",
+            "Transport",
+            -100.00,
+            "TRANSPORT"
+        )
+    ]
+
+    balances = list(
+        running_balance(balance_transactions)
+    )
+
+    assert balances == [1000.0, 800.0, 700.0], (
+        "Running balance should produce the correct sequence"
+    )
+
+    # Test the closure-based flagger
+    flagger = make_flagger(1000)
+
+    large_transaction = Transaction(
+        "2026-08-04",
+        "Large Purchase",
+        -5000.00,
+        "SHOPPING"
+    )
+
+    small_transaction = Transaction(
+        "2026-08-05",
+        "Coffee",
+        -50.00,
+        "FOOD"
+    )
+
+    assert flagger(large_transaction) is True, (
+        "Flagger should flag amounts above the threshold"
+    )
+
+    assert flagger(small_transaction) is False, (
+        "Flagger should not flag amounts below the threshold"
+    )
+
+    # Test exact duplicate detection
+    duplicate_transactions = [
+        Transaction(
+            "2026-08-01",
+            "Food",
+            -200.00,
+            "FOOD"
+        ),
+        Transaction(
+            "2026-08-02",
+            "Transport",
+            -100.00,
+            "TRANSPORT"
+        ),
+        Transaction(
+            "2026-08-01",
+            "Food",
+            -200.00,
+            "FOOD"
+        )
+    ]
+
+    duplicates = find_duplicates(
+        duplicate_transactions
+    )
+
+    assert len(duplicates) == 1, (
+        "Duplicate detection should find the planted duplicate"
+    )
+
+    clean_transactions = [
+        Transaction(
+            "2026-08-01",
+            "Food",
+            -200.00,
+            "FOOD"
+        ),
+        Transaction(
+            "2026-08-02",
+            "Transport",
+            -100.00,
+            "TRANSPORT"
+        )
+    ]
+
+    assert find_duplicates(clean_transactions) == [], (
+        "Clean transaction list should have no duplicates"
+    )
+
+    # Test statistical outlier detection
+    outlier_transactions = [
+        Transaction("2026-08-01", "Food", -100.00, "FOOD"),
+        Transaction("2026-08-02", "Food", -101.00, "FOOD"),
+        Transaction("2026-08-03", "Food", -99.00, "FOOD"),
+        Transaction("2026-08-04", "Food", -100.00, "FOOD"),
+        Transaction("2026-08-05", "Food", -102.00, "FOOD"),
+        Transaction("2026-08-06", "Food", -98.00, "FOOD"),
+        Transaction("2026-08-07", "Food", -100.00, "FOOD"),
+        Transaction("2026-08-08", "Food", -101.00, "FOOD"),
+        Transaction("2026-08-09", "Food", -99.00, "FOOD"),
+        Transaction("2026-08-10", "Large Purchase", -10000.00, "SHOPPING")
+    ]
+
+    outliers = find_outliers(
+        outlier_transactions
+    )
+
+    assert len(outliers) == 1, (
+        "Outlier detection should find the planted outlier"
+    )
+
+    assert outliers[0].amount == -10000.00, (
+        "The large transaction should be identified as the outlier"
+    )
+
+    # Test category totals
+    category_transactions = [
+        Transaction(
+            "2026-08-01",
+            "Salary",
+            15000.00,
+            "SALARY"
+        ),
+        Transaction(
+            "2026-08-02",
+            "Food",
+            -450.00,
+            "FOOD"
+        ),
+        Transaction(
+            "2026-08-03",
+            "More Food",
+            -250.00,
+            "FOOD"
+        ),
+        Transaction(
+            "2026-08-04",
+            "Transport",
+            -300.00,
+            "TRANSPORT"
+        )
+    ]
+
+    totals = category_totals(
+        category_transactions
+    )
+
+    assert totals["income"]["SALARY"] == 15000.00, (
+        "Income total should be correct"
+    )
+
+    assert totals["expense"]["FOOD"] == -700.00, (
+        "Food expense total should be correct"
+    )
+
+    assert totals["expense"]["TRANSPORT"] == -300.00, (
+        "Transport expense total should be correct"
+    )
+
+    # Test the RecurringTransaction subclass
+    recurring = RecurringTransaction(
+        "2026-08-01",
+        "Rent",
+        -8000.00,
+        "HOUSING",
+        "Monthly"
+    )
+
+    assert recurring.interval == "Monthly", (
+        "Recurring transaction should store its interval"
+    )
+
+    assert recurring.is_income() is False, (
+        "Negative recurring transaction should not be income"
+    )
+
+    print("All tests passed")
+
+
+if __name__ == "__main__":
+    run_tests()
+
