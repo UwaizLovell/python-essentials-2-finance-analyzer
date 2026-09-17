@@ -40,4 +40,28 @@ class RecurringTransaction(Transaction):
             f"{self.amount:.2f} | {self.category} | "
             f"Recurring: {self.interval}"
         )
-    
+
+
+class TransferTransaction(Transaction):
+    # Create a transfer transaction with an additional account
+    def __init__(
+        self,
+        date,
+        description,
+        amount,
+        category,
+        transfer_account
+    ):
+        # Use the parent class constructor for the main transaction details
+        super().__init__(date, description, amount, category)
+
+        # Store the account involved in the transfer
+        self.transfer_account = transfer_account
+
+    def __str__(self):
+        # Override the parent string method to include the transfer account
+        return (
+            f"{self.date} | {self.description} | "
+            f"{self.amount:.2f} | {self.category} | "
+            f"Transfer: {self.transfer_account}"
+        )
