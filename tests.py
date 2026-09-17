@@ -67,6 +67,39 @@ def run_tests():
         "Three invalid rows should be rejected"
     )
 
+    # Check that the junk line was rejected
+    junk_rejection_found = False
+
+    for reason in rejections:
+        if "missing or incorrect number of fields" in reason:
+            junk_rejection_found = True
+
+    assert junk_rejection_found is True, (
+        "Junk line should be rejected safely"
+    )
+
+    # Check that the nonnumeric amount was rejected
+    amount_rejection_found = False
+
+    for reason in rejections:
+        if "could not convert string to float" in reason:
+            amount_rejection_found = True
+
+    assert amount_rejection_found is True, (
+        "Nonnumeric amount should be rejected"
+    )
+
+    # Check that the missing-field row was rejected
+    missing_field_rejection_found = False
+
+    for reason in rejections:
+        if "missing or incorrect number of fields" in reason:
+            missing_field_rejection_found = True
+
+    assert missing_field_rejection_found is True, (
+        "Missing fields should be rejected"
+    )
+
     # Test that whitespace was stripped correctly
     whitespace_transaction_found = False
 
@@ -80,6 +113,41 @@ def run_tests():
 
     assert whitespace_transaction_found is True, (
         "Whitespace should be stripped from transaction fields"
+    )
+
+    # Test missing file handling
+    missing_transactions, missing_rejections = load_transactions(
+        "data/file_that_does_not_exist.txt"
+    )
+
+    assert missing_transactions == [], (
+        "Missing file should return an empty transaction list"
+    )
+
+    assert len(missing_rejections) == 1, (
+        "Missing file should return one rejection reason"
+    )
+
+    assert "File not found" in missing_rejections[0], (
+        "Missing file should report a clear reason"
+    )
+
+    # Test empty file handling
+    empty_file_path = "data/empty_test_file.txt"
+
+    with open(empty_file_path, "w") as file:
+        file.write("")
+
+    empty_transactions, empty_rejections = load_transactions(
+        empty_file_path
+    )
+
+    assert empty_transactions == [], (
+        "Empty file should return an empty transaction list"
+    )
+
+    assert empty_rejections == ["File is empty"], (
+        "Empty file should report that the file is empty"
     )
 
     # Test running balance
@@ -197,7 +265,12 @@ def run_tests():
         Transaction("2026-08-07", "Food", -100.00, "FOOD"),
         Transaction("2026-08-08", "Food", -101.00, "FOOD"),
         Transaction("2026-08-09", "Food", -99.00, "FOOD"),
-        Transaction("2026-08-10", "Large Purchase", -10000.00, "SHOPPING")
+        Transaction(
+            "2026-08-10",
+            "Large Purchase",
+            -10000.00,
+            "SHOPPING"
+        )
     ]
 
     outliers = find_outliers(
