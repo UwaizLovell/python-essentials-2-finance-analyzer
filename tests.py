@@ -1,4 +1,8 @@
-from models import Transaction, RecurringTransaction
+from models import (
+    Transaction,
+    RecurringTransaction,
+    TransferTransaction
+)
 from parser import load_transactions
 from analytics import (
     running_balance,
@@ -392,6 +396,33 @@ def run_tests():
 
     assert recurring.is_income() is False, (
         "Negative recurring transaction should not be income"
+    )
+
+    # Test the TransferTransaction subclass
+    transfer = TransferTransaction(
+        "2026-08-15",
+        "Bank Transfer",
+        -1000.00,
+        "TRANSFER",
+        "Savings"
+    )
+
+    assert transfer.transfer_account == "Savings", (
+        "Transfer transaction should store the transfer account"
+    )
+
+    assert transfer.amount == -1000.00, (
+        "Transfer transaction should keep the correct amount"
+    )
+
+    assert transfer.is_income() is False, (
+        "Negative transfer transaction should not be income"
+    )
+
+    transfer_text = str(transfer)
+
+    assert "Transfer: Savings" in transfer_text, (
+        "Transfer transaction string should include the transfer account"
     )
 
     print("All tests passed")
