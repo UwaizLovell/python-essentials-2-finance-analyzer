@@ -150,6 +150,54 @@ def run_tests():
         "Empty file should report that the file is empty"
     )
 
+    # Test an additional parser edge case
+    # with whitespace, a slash date and a zero amount
+    edge_case_path = "data/edge_case_test.txt"
+
+    with open(edge_case_path, "w") as file:
+        file.write(
+            " 2026/08/15 , Test Transaction , 0.00 , TEST \n"
+        )
+
+    edge_transactions, edge_rejections = load_transactions(
+        edge_case_path
+    )
+
+    # Check that the valid edge-case row was loaded
+    assert len(edge_transactions) == 1, (
+        "Valid edge-case row should be loaded"
+    )
+
+    # Check that the slash date was normalised
+    assert edge_transactions[0].date == "2026-08-15", (
+        "Slash date should be normalised to the required format"
+    )
+
+    # Check that whitespace was removed from the description
+    assert edge_transactions[0].description == "Test Transaction", (
+        "Extra whitespace should be removed from the description"
+    )
+
+    # Check that whitespace was removed from the category
+    assert edge_transactions[0].category == "TEST", (
+        "Extra whitespace should be removed from the category"
+    )
+
+    # Check that zero was converted to a float
+    assert edge_transactions[0].amount == 0.0, (
+        "Zero amount should be converted to float"
+    )
+
+    # Check that the valid edge-case row was not rejected
+    assert edge_rejections == [], (
+        "Valid edge-case row should not be rejected"
+    )
+
+    # Check zero-income behaviour
+    assert edge_transactions[0].is_income() is False, (
+        "Zero amount should not be recognised as income"
+    )
+
     # Test running balance
     balance_transactions = [
         Transaction(
