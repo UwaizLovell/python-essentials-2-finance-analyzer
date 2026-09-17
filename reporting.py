@@ -94,3 +94,20 @@ def log_run(transaction_count, rejection_count):
 
     return "data/analyzer.log"
 
+def export_csv(transactions, path="data/transactions.csv"):
+    # Create the data directory if it does not already exist
+    os.makedirs("data", exist_ok=True)
+
+    # Write the transactions to a CSV-style file
+    with open(path, "w") as file:
+        file.write("date,description,amount,category\n")
+
+        for transaction in transactions:
+            file.write(
+                f"{transaction.date},"
+                f"{transaction.description},"
+                f"{transaction.amount:.2f},"
+                f"{transaction.category}\n"
+            )
+
+    return path
