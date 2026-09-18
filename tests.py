@@ -11,6 +11,7 @@ from analytics import (
     find_outliers,
     category_totals
 )
+from reporting import export_csv
 
 
 def run_tests():
@@ -425,9 +426,54 @@ def run_tests():
         "Transfer transaction string should include the transfer account"
     )
 
+    # Test CSV export
+    csv_path = "data/test_transactions.csv"
+
+    csv_transactions = [
+        Transaction(
+            "2026-08-01",
+            "Salary",
+            15000.00,
+            "SALARY"
+        ),
+        Transaction(
+            "2026-08-02",
+            "Food",
+            -450.50,
+            "FOOD"
+        )
+    ]
+
+    exported_path = export_csv(
+        csv_transactions,
+        csv_path
+    )
+
+    assert exported_path == csv_path, (
+        "CSV export should return the file path"
+    )
+
+    with open(csv_path, "r") as file:
+        csv_contents = file.read()
+
+    # Check that the CSV header was written
+    assert "date,description,amount,category" in csv_contents, (
+        "CSV file should contain the correct header"
+    )
+
+    # Check that both transactions were exported
+    assert "2026-08-01,Salary,15000.00,SALARY" in csv_contents, (
+        "CSV file should contain the income transaction"
+    )
+
+    assert "2026-08-02,Food,-450.50,FOOD" in csv_contents, (
+        "CSV file should contain the expense transaction"
+    )
+
     print("All tests passed")
 
 
 if __name__ == "__main__":
     run_tests()
+
 
